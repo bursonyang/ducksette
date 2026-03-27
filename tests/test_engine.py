@@ -22,7 +22,7 @@ import pytest
 from hypothesis import given, settings, strategies as st
 
 from ducksette.config import Config, DataSourceConfig
-from ducksette.engine import QueryEngine, TYPE_MAP, build_attach_sql, _MemorySource
+from ducksette.engine import QueryEngine, TYPE_MAP, build_attach_sql, _MemorySource, _redact
 from ducksette.errors import DatabaseNotFoundError, QueryError
 
 
@@ -420,3 +420,38 @@ def test_reconnect_invalid_source_returns_false():
     # Don't initialize (attach would fail anyway); reconnect should return False
     result = eng.reconnect("bad")
     assert result is False
+
+
+# ---------------------------------------------------------------------------
+# _redact: credential masking helper
+# ---------------------------------------------------------------------------
+
+class TestRedact:
+    def test_masks_password_in_postgresql_url(self):
+        assert _redact("postgresql://user:secret@host:5432/db") == "postgresql://user:***@host:5432/db"
+
+    def test_masks_password_in_mysql_url(self):
+        assert _redact("mysql://admin:p4ssw0rd@localhost:3306/mydb") == "mysql://admin:***@localhost:3306/mydb"
+
+    def test_leaves_url_without_password_unchanged(self):
+        url = "postgresql://host:5432/db"
+        assert _redact(url) == url
+
+    def test_masks_credentials_embedded_in_exception_message(self):
+        msg = "Connection failed: postgresql://user:hunter2@db.example.com/prod"
+        result = _redact(msg)
+        assert "hunter2" not in result
+        assert "***" in result
+
+    def test_leaves_plain_string_unchanged(self):
+        s = "some log message with no credentials"
+        assert _redact(s) == s
+
+    def test_accepts_non_string_argument(self):
+        exc = RuntimeError("could not connect")
+        assert _redact(exc) == "could not connect"
+
+    def test_masks_password_with_special_characters(self):
+        result = _redact("postgresql://user:p%40ss!#@host/db")
+        assert "p%40ss!#" not in result
+        assert "user:***@host/db" in result
