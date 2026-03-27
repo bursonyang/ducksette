@@ -5,6 +5,7 @@ QueryEngine 模块：持有 DuckDB 连接，负责数据源挂载和 SQL 执行�
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -17,6 +18,13 @@ from ducksette.security import validate_sql
 from ducksette.serializer import QueryResult
 
 logger = logging.getLogger(__name__)
+
+_CREDENTIALS_RE = re.compile(r"(://[^:@/]+):([^@]+)@")
+
+
+def _redact(value: object) -> str:
+    """Replace passwords in connection-string-like text with '***'."""
+    return _CREDENTIALS_RE.sub(r"\1:***@", str(value))
 
 # Type mapping for ATTACH statements
 TYPE_MAP = {
@@ -114,7 +122,7 @@ class QueryEngine:
                 succeeded.append(src.name)
                 logger.info("Attached data source: %s (%s)", src.name, src.type)
             except Exception as exc:
-                logger.warning("Failed to attach %s: %s", src.name, exc)
+                logger.warning("Failed to attach %s: %s", src.name, _redact(exc))
         return succeeded
 
     def list_databases(self) -> list[DatabaseMeta]:
@@ -247,5 +255,5 @@ class QueryEngine:
             self._attached[source_name] = src
             return True
         except Exception as exc:
-            logger.warning("Reconnect failed for %s: %s", source_name, exc)
+            logger.warning("Reconnect failed for %s: %s", source_name, _redact(exc))
             return False
