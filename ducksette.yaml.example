@@ -1,0 +1,24 @@
+# ducksette.yaml — example configuration
+max_returned_rows: 1000
+default_page_size: 100
+cors: false
+
+sources:
+  - name: sales
+    type: parquet
+    path: /data/sales.parquet
+
+  - name: logs
+    type: csv
+    path: /data/logs.csv
+    options:
+      header: true
+      delimiter: ","
+
+  - name: analytics
+    type: postgresql
+    connection_string: "postgresql://user:pass@host:5432/db"
+
+  - name: warehouse
+    type: mysql
+    connection_string: "mysql://user:pass@host:3306/db"

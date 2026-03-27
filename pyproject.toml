@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ducksette"
+version = "0.1.0"
+description = "A DuckDB-based data browsing and query service compatible with the Datasette HTTP API"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "duckdb>=0.10.0",
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pyyaml>=6.0",
+    "sqlglot>=23.0.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "hypothesis>=6.100.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    "httpx>=0.27.0",
+]
+
+[project.scripts]
+ducksette = "ducksette.__main__:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
